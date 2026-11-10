@@ -49,12 +49,25 @@ struct ContentView: View {
                 : cornerRadiusInsets.closed.top
     }
 
+    private var isMusicActiveInClosedNotch: Bool {
+        (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
+            && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
+            && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
+    }
+
     private var currentNotchShape: NotchShape {
-        NotchShape(
+        let bottomRadius: CGFloat = {
+            if vm.notchState == .open {
+                return Defaults[.cornerRadiusScaling] ? cornerRadiusInsets.opened.bottom : cornerRadiusInsets.closed.bottom
+            } else if isMusicActiveInClosedNotch {
+                return 10
+            } else {
+                return cornerRadiusInsets.closed.bottom
+            }
+        }()
+        return NotchShape(
             topCornerRadius: topCornerRadius,
-            bottomCornerRadius: ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
-                ? cornerRadiusInsets.opened.bottom
-                : cornerRadiusInsets.closed.bottom
+            bottomCornerRadius: bottomRadius
         )
     }
 
@@ -65,12 +78,9 @@ struct ContentView: View {
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
         {
             chinWidth = 640
-        } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
-            && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
-            && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
-        {
-            // SmartNotch compact style: tight +16pt wing expansion (8pt on each side)
-            chinWidth += 16
+        } else if isMusicActiveInClosedNotch {
+            // Ultra-slim trim: minimal wing expansion
+            chinWidth += 56
         } else if !coordinator.expandingView.show && vm.notchState == .closed
             && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace]
             && !vm.hideOnClosed
@@ -98,7 +108,7 @@ struct ContentView: View {
                         vm.notchState == .open
                         ? Defaults[.cornerRadiusScaling]
                         ? (cornerRadiusInsets.opened.top) : (cornerRadiusInsets.opened.bottom)
-                        : cornerRadiusInsets.closed.bottom
+                        : (isMusicActiveInClosedNotch ? 9 : cornerRadiusInsets.closed.bottom)
                     )
                     .padding([.horizontal, .bottom], vm.notchState == .open ? 12 : 0)
                     .background(.black)
@@ -388,23 +398,21 @@ struct ContentView: View {
 
     @ViewBuilder
     func MusicLiveActivity() -> some View {
+        let artSize: CGFloat = 17
+        let visualizerWidth: CGFloat = 16
+        let visualizerHeight: CGFloat = 12
+
         HStack(spacing: 0) {
             Image(nsImage: musicManager.albumArt)
                 .resizable()
-                .clipped()
-                .clipShape(
-                    RoundedRectangle(
-                        cornerRadius: MusicPlayerImageSizes.cornerRadiusInset.closed)
-                )
+                .scaledToFill()
+                .frame(width: artSize, height: artSize)
+                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                 .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
-                .frame(
-                    width: max(0, vm.effectiveClosedNotchHeight - 14),
-                    height: max(0, vm.effectiveClosedNotchHeight - 14)
-                )
 
             Rectangle()
                 .fill(.black)
-                .frame(width: vm.closedNotchSize.width + 6)
+                .frame(width: vm.closedNotchSize.width + 4)
 
             HStack {
                 if useMusicVisualizer {
@@ -418,7 +426,7 @@ struct ContentView: View {
                         .matchedGeometryEffect(id: "spectrum", in: albumArtNamespace)
                         .mask {
                             AudioSpectrumView(isPlaying: $musicManager.isPlaying)
-                                .frame(width: 16, height: 13)
+                                .frame(width: visualizerWidth, height: visualizerHeight)
                         }
                 } else {
                     LottieAnimationContainer()
@@ -426,8 +434,8 @@ struct ContentView: View {
                 }
             }
             .frame(
-                width: max(0, vm.effectiveClosedNotchHeight - 14),
-                height: max(0, vm.effectiveClosedNotchHeight - 14),
+                width: artSize,
+                height: artSize,
                 alignment: .center
             )
         }
