@@ -65,16 +65,6 @@ struct ContentView: View {
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
         {
             chinWidth = 640
-        } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
-            && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
-            && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
-        {
-            chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
-        } else if !coordinator.expandingView.show && vm.notchState == .closed
-            && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace]
-            && !vm.hideOnClosed
-        {
-            chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
         }
 
         return chinWidth
@@ -387,7 +377,7 @@ struct ContentView: View {
 
     @ViewBuilder
     func MusicLiveActivity() -> some View {
-        HStack {
+        HStack(spacing: 0) {
             Image(nsImage: musicManager.albumArt)
                 .resizable()
                 .clipped()
@@ -397,56 +387,11 @@ struct ContentView: View {
                 )
                 .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
                 .frame(
-                    width: max(0, vm.effectiveClosedNotchHeight - 12),
-                    height: max(0, vm.effectiveClosedNotchHeight - 12)
+                    width: max(0, vm.effectiveClosedNotchHeight - 14),
+                    height: max(0, vm.effectiveClosedNotchHeight - 14)
                 )
 
-            Rectangle()
-                .fill(.black)
-                .overlay(
-                    HStack(alignment: .top) {
-                        if coordinator.expandingView.show
-                            && coordinator.expandingView.type == .music
-                        {
-                            MarqueeText(
-                                .constant(musicManager.songTitle),
-                                textColor: Defaults[.coloredSpectrogram]
-                                    ? Color(nsColor: musicManager.avgColor) : Color.gray,
-                                minDuration: 0.4,
-                                frameWidth: 100
-                            )
-                            .opacity(
-                                (coordinator.expandingView.show
-                                    && Defaults[.sneakPeekStyles] == .inline)
-                                    ? 1 : 0
-                            )
-                            Spacer(minLength: vm.closedNotchSize.width)
-                            // Song Artist
-                            Text(musicManager.artistName)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                                .foregroundStyle(
-                                    Defaults[.coloredSpectrogram]
-                                        ? Color(nsColor: musicManager.avgColor)
-                                        : Color.gray
-                                )
-                                .opacity(
-                                    (coordinator.expandingView.show
-                                        && coordinator.expandingView.type == .music
-                                        && Defaults[.sneakPeekStyles] == .inline)
-                                        ? 1 : 0
-                                )
-                        }
-                    }
-                )
-                .frame(
-                    width: (coordinator.expandingView.show
-                        && coordinator.expandingView.type == .music
-                        && Defaults[.sneakPeekStyles] == .inline)
-                        ? 380
-                        : vm.closedNotchSize.width
-                            + -cornerRadiusInsets.closed.top
-                )
+            Spacer(minLength: 0)
 
             HStack {
                 if useMusicVisualizer {
@@ -468,19 +413,13 @@ struct ContentView: View {
                 }
             }
             .frame(
-                width: max(
-                    0,
-                    vm.effectiveClosedNotchHeight - 12
-                        + gestureProgress / 2
-                ),
-                height: max(
-                    0,
-                    vm.effectiveClosedNotchHeight - 12
-                ),
+                width: max(0, vm.effectiveClosedNotchHeight - 14),
+                height: max(0, vm.effectiveClosedNotchHeight - 14),
                 alignment: .center
             )
         }
         .frame(
+            width: max(0, vm.closedNotchSize.width - (2 * cornerRadiusInsets.closed.bottom)),
             height: vm.effectiveClosedNotchHeight,
             alignment: .center
         )
