@@ -65,6 +65,17 @@ struct ContentView: View {
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
         {
             chinWidth = 640
+        } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
+            && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
+            && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
+        {
+            // SmartNotch compact style: tight +16pt wing expansion (8pt on each side)
+            chinWidth += 16
+        } else if !coordinator.expandingView.show && vm.notchState == .closed
+            && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace]
+            && !vm.hideOnClosed
+        {
+            chinWidth += 16
         }
 
         return chinWidth
@@ -391,7 +402,9 @@ struct ContentView: View {
                     height: max(0, vm.effectiveClosedNotchHeight - 14)
                 )
 
-            Spacer(minLength: 0)
+            Rectangle()
+                .fill(.black)
+                .frame(width: vm.closedNotchSize.width + 6)
 
             HStack {
                 if useMusicVisualizer {
@@ -405,7 +418,7 @@ struct ContentView: View {
                         .matchedGeometryEffect(id: "spectrum", in: albumArtNamespace)
                         .mask {
                             AudioSpectrumView(isPlaying: $musicManager.isPlaying)
-                                .frame(width: 16, height: 12)
+                                .frame(width: 16, height: 13)
                         }
                 } else {
                     LottieAnimationContainer()
@@ -419,7 +432,6 @@ struct ContentView: View {
             )
         }
         .frame(
-            width: max(0, vm.closedNotchSize.width - (2 * cornerRadiusInsets.closed.bottom)),
             height: vm.effectiveClosedNotchHeight,
             alignment: .center
         )
